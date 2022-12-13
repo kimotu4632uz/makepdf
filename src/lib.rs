@@ -1,2 +1,4 @@
-pub mod html2img;
+pub mod getimgs;
+pub use getimgs::getimgs;
 
+pub mod genpdf;
