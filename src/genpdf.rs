@@ -1,25 +1,18 @@
 use pdftool::img2pdf::Pdf;
 
-use tokio::fs;
-
-use std::path::Path;
-
-async fn ls<P: AsRef<Path>>(base: P) -> anyhow::Result<()> {
-    let mut entries = fs::read_dir(base).await?;
-
-    let mut files = Vec::new();
-
-    while let Some(entry) = entries.next_entry().await? {
-        files.push(entry.file_name());
-    }
-
-    Ok(())
-}
+use crate::utils::read_imgs;
 
 pub async fn genpdf() -> anyhow::Result<()> {
-    let pdf = Pdf::new();
+    let mut pdf = Pdf::new();
 
-    pdf.add_image();
+    let imgs = read_imgs("").await?;
+
+    for img in imgs {
+        pdf.add_image(&img)?;
+    }
+
+    pdf.pdf.save("out.pdf")?;
 
     Ok(())
 }
+

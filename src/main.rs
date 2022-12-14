@@ -1,8 +1,6 @@
-use pdftool::img2pdf::Pdf;
-use makepdf::html2img::get_urls;
+use makepdf::genpdf;
 
 #[tokio::main]
 async fn main() {
-    Pdf::new();
 }
 

@@ -1,10 +1,11 @@
 use scraper::{Html, Selector};
 use image::GenericImageView;
 use mime_guess::mime;
-use itertools::Itertools;
 
 use std::sync::Arc;
 use tokio::task::JoinHandle;
+use tokio::fs;
+
 
 pub async fn getimgs(url: &str) -> anyhow::Result<()> {
     let html = reqwest::get(url)
@@ -13,8 +14,9 @@ pub async fn getimgs(url: &str) -> anyhow::Result<()> {
         .await?;
 
     let selector = Selector::parse("a,img").unwrap();
+    let parsed = Html::parse_document(&html);
 
-    let urls = Html::parse_document(&html)
+    let urls = parsed
         .select(&selector)
         .filter_map(|elem| {
             match elem.value().name() {
@@ -30,20 +32,18 @@ pub async fn getimgs(url: &str) -> anyhow::Result<()> {
                     mime == mime::IMAGE_JPEG || mime == mime::IMAGE_PNG,
                 None => false,
             }
-        })
-        .collect_vec();
+        });
 
     let client = Arc::new(reqwest::Client::new());
 
     let handles: Vec<JoinHandle<anyhow::Result<_>>> = urls
-        .into_iter()
         .map(|url| {
             let client = client.clone();
 
             tokio::spawn(async move {
-                let result = client.get(url).send().await?.bytes().await?;
-                let img = image::load_from_memory(&result)?;
-                Ok(img)
+                let fname = url.split("/").last().unwrap().to_string();
+                let result = client.get(&url).send().await?.bytes().await?;
+                Ok((fname, result))
             })
         })
         .collect();
@@ -53,12 +53,24 @@ pub async fn getimgs(url: &str) -> anyhow::Result<()> {
         .into_iter()
         .collect::<anyhow::Result<Vec<_>>>()?;
 
-    let imgs = imgs.into_iter()
-        .filter(|img| {
-            let (height, _) = img.dimensions();
-            height > 700
+    let handles: Vec<JoinHandle<anyhow::Result<_>>> = imgs.into_iter()
+        .filter(|(_, img)| {
+            if let Some(img) = image::load_from_memory(&img).ok() {
+                let (height, _) = img.dimensions();
+                return height > 700
+            } else { return false }
         })
-        .collect_vec();
+        .map(|(fname, img)| {
+            tokio::spawn(async move {
+                fs::write(fname, img).await.map_err(|e| e.into())
+            })
+        })
+        .collect();
+
+    let _ = futures::future::try_join_all(handles)
+        .await?
+        .into_iter()
+        .collect::<anyhow::Result<Vec<_>>>()?;
 
     Ok(())
 }
