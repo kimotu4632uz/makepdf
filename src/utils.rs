@@ -1,15 +1,16 @@
-use std::path::Path;
-
+use std::env;
+use std::path::PathBuf;
 use tokio::fs;
 
 
-pub async fn ls<P: AsRef<Path>>(base: P) -> anyhow::Result<Vec<String>> {
-    let mut entries = fs::read_dir(base).await?;
+pub async fn ls() -> anyhow::Result<Vec<PathBuf>> {
+    let cwd = env::current_dir()?;
+    let mut entries = fs::read_dir(&cwd).await?;
 
     let mut files = Vec::new();
 
     while let Some(entry) = entries.next_entry().await? {
-        files.push(entry.file_name().into_string().unwrap());
+        files.push(cwd.join(entry.file_name()));
     }
 
     Ok(files)
