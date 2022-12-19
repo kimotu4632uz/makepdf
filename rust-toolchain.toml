@@ -1,5 +1,5 @@
 [toolchain]
 channel = "1.65.0"
 profile = "default"
-components = [ "rustfmt", "rls", "rust-src", "rust-analysis" ]
+components = [ "rustfmt", "rust-src", "rust-analysis" ]
 
