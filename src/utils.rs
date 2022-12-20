@@ -10,9 +10,13 @@ pub async fn ls() -> anyhow::Result<Vec<PathBuf>> {
     let mut files = Vec::new();
 
     while let Some(entry) = entries.next_entry().await? {
-        files.push(cwd.join(entry.file_name()));
+        let path = entry.path();
+        if path.is_file() {
+            files.push(path);
+        }
     }
 
+    files.sort_unstable_by(|a, b| a.file_name().cmp(&b.file_name()));
     Ok(files)
 }
 
