@@ -1,7 +1,6 @@
-use std::env;
-use std::path::PathBuf;
-use tokio::fs;
+use std::{env, path::PathBuf};
 
+use tokio::fs;
 
 pub async fn ls() -> anyhow::Result<Vec<PathBuf>> {
     let cwd = env::current_dir()?;
@@ -19,4 +18,3 @@ pub async fn ls() -> anyhow::Result<Vec<PathBuf>> {
     files.sort_unstable_by(|a, b| a.file_name().cmp(&b.file_name()));
     Ok(files)
 }
-

@@ -8,9 +8,7 @@ use makepdf::*;
 #[derive(Parser)]
 #[clap(author, about, version)]
 /// make pdf from URL or images interactively.
-struct Arg {
-}
-
+struct Arg {}
 
 // definition of interactive commands
 #[derive(Parser)]
@@ -38,7 +36,6 @@ enum Commands {
     /// get image from URL
     Get { url: String },
 }
-
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -74,29 +71,28 @@ async fn main() -> anyhow::Result<()> {
             Err(e) => {
                 e.print()?;
                 println!();
-                continue
-            },
+                continue;
+            }
         };
 
         match args.cmd {
             Commands::Quit => {
                 break;
-            },
+            }
             Commands::Backup => {
                 backup().await?;
-            },
+            }
             Commands::Trim => {
                 trim().await?;
-            },
+            }
             Commands::Genpdf => {
                 genpdf().await?;
-            },
+            }
             Commands::Get { url } => {
                 getimgs(&url).await?;
-            },
+            }
         }
     }
 
     Ok(())
 }
-

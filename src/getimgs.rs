@@ -1,17 +1,13 @@
-use scraper::{Html, Selector};
+use std::sync::Arc;
+
 use image::GenericImageView;
 use mime_guess::mime;
+use scraper::{Html, Selector};
 
-use std::sync::Arc;
-use tokio::task::JoinHandle;
-use tokio::fs;
-
+use tokio::{fs, task::JoinHandle};
 
 pub async fn getimgs(url: &str) -> anyhow::Result<()> {
-    let html = reqwest::get(url)
-        .await?
-        .text()
-        .await?;
+    let html = reqwest::get(url).await?.text().await?;
 
     let selector = Selector::parse("a,img").unwrap();
     let parsed = Html::parse_document(&html);
@@ -26,12 +22,9 @@ pub async fn getimgs(url: &str) -> anyhow::Result<()> {
             }
             .map(String::from)
         })
-        .filter(|url| {
-            match mime_guess::from_path(url).first() {
-                Some(mime) =>
-                    mime == mime::IMAGE_JPEG || mime == mime::IMAGE_PNG,
-                None => false,
-            }
+        .filter(|url| match mime_guess::from_path(url).first() {
+            Some(mime) => mime == mime::IMAGE_JPEG || mime == mime::IMAGE_PNG,
+            None => false,
         });
 
     let client = Arc::new(reqwest::Client::new());
@@ -53,17 +46,18 @@ pub async fn getimgs(url: &str) -> anyhow::Result<()> {
         .into_iter()
         .collect::<anyhow::Result<Vec<_>>>()?;
 
-    let handles: Vec<JoinHandle<anyhow::Result<_>>> = imgs.into_iter()
+    let handles: Vec<JoinHandle<anyhow::Result<_>>> = imgs
+        .into_iter()
         .filter(|(_, img)| {
             if let Some(img) = image::load_from_memory(&img).ok() {
                 let (height, _) = img.dimensions();
-                return height > 700
-            } else { return false }
+                return height > 700;
+            } else {
+                return false;
+            }
         })
         .map(|(fname, img)| {
-            tokio::spawn(async move {
-                fs::write(fname, img).await.map_err(|e| e.into())
-            })
+            tokio::spawn(async move { fs::write(fname, img).await.map_err(|e| e.into()) })
         })
         .collect();
 
@@ -74,4 +68,3 @@ pub async fn getimgs(url: &str) -> anyhow::Result<()> {
 
     Ok(())
 }
-
