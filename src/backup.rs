@@ -20,6 +20,7 @@ pub async fn backup() -> anyhow::Result<()> {
             .unwrap()
             .join("backup")
             .join(file.file_name().unwrap());
+
         fs::copy(file, out_file).await?;
     }
 

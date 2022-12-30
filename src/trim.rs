@@ -1,4 +1,4 @@
-use image::{DynamicImage, GenericImageView};
+use image::GenericImageView;
 use itertools::Itertools;
 
 use tokio::{fs, task::JoinHandle};
@@ -13,10 +13,11 @@ pub async fn trim() -> anyhow::Result<()> {
         .map(|file| {
             tokio::spawn(async move {
                 let img = fs::read(&file).await?;
+                let format = image::guess_format(&img)?;
                 let img = image::load_from_memory(&img)?;
 
                 let bg = img.get_pixel(0, 0);
-                let (height, width) = img.dimensions();
+                let (width, height) = img.dimensions();
 
                 let yrange = (0..width)
                     .map(|x| {
@@ -36,11 +37,13 @@ pub async fn trim() -> anyhow::Result<()> {
                     .find_position(|x| x.is_some())
                     .map(|(i, _)| i)
                     .unwrap_or(0) as u32;
+
                 let y1 = yrange
                     .iter()
                     .filter_map(|x| x.map(|(top, _)| top))
                     .min()
                     .unwrap_or(0);
+
                 let x2 = width
                     - 1
                     - yrange
@@ -49,16 +52,19 @@ pub async fn trim() -> anyhow::Result<()> {
                         .find_position(|x| x.is_some())
                         .map(|(i, _)| i)
                         .unwrap_or(0) as u32;
+
                 let y2 = yrange
                     .iter()
                     .filter_map(|x| x.map(|(_, bottom)| bottom))
                     .max()
                     .unwrap_or(height - 1);
 
-                let img_out =
-                    DynamicImage::ImageRgb8(img.crop_imm(x1, y1, x2 - x1, y2 - y1).to_rgb8())
-                        .into_bytes();
-                fs::write(file, img_out).await?;
+                let img_out = img.crop_imm(x1, y1, x2 - x1, y2 - y1);
+
+                let mut bytes = Vec::new();
+                img_out.write_to(&mut bytes, format)?;
+
+                fs::write(file, bytes).await?;
                 Ok(())
             })
         })

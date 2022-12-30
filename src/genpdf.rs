@@ -5,7 +5,7 @@ use mime_guess::mime;
 
 use tokio::{fs, task::JoinHandle};
 
-use pdftool::img2pdf::Pdf;
+use pdftool::Pdf;
 
 use crate::utils::ls;
 
@@ -37,10 +37,12 @@ pub async fn genpdf() -> anyhow::Result<()> {
         pdf.add_image(&img)?;
     }
 
+    let bytes = pdf.to_bytes()?;
+
     if let Some(file) = env::current_dir()?.with_extension("pdf").file_name() {
-        pdf.pdf.save(file)?;
+        fs::write(file, bytes).await?;
     } else {
-        pdf.pdf.save("out.pdf")?;
+        fs::write("out.pdf", bytes).await?;
     }
 
     Ok(())

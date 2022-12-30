@@ -50,8 +50,8 @@ pub async fn getimgs(url: &str) -> anyhow::Result<()> {
         .into_iter()
         .filter(|(_, img)| {
             if let Some(img) = image::load_from_memory(&img).ok() {
-                let (height, _) = img.dimensions();
-                return height > 700;
+                let (width, _) = img.dimensions();
+                return width > 700;
             } else {
                 return false;
             }
